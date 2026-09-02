@@ -64,6 +64,9 @@ function SellPage() {
   const createListing = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Not signed in");
+      if (isFree && !isVerifiedSharer) {
+        throw new Error("An admin needs to verify your account before you can post free samples.");
+      }
       let filePath: string | null = null;
 
       if (file) {
