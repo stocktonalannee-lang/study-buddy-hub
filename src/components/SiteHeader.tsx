@@ -30,12 +30,21 @@ export function SiteHeader() {
                   Chats
                 </Link>
               </Button>
+              {isAdmin && (
+                <Button asChild variant="ghost" size="sm">
+                  <Link to="/admin">
+                    <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                    Admin
+                  </Link>
+                </Button>
+              )}
               <Button asChild size="sm">
                 <Link to="/sell">
                   <PlusCircle className="h-4 w-4" aria-hidden="true" />
                   Post notes
                 </Link>
               </Button>
+
               <Button
                 variant="ghost"
                 size="sm"
