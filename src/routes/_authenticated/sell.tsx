@@ -182,15 +182,35 @@ function SellPage() {
             />
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border border-border bg-secondary/40 px-4 py-3">
-            <div>
-              <Label htmlFor="free">Give these away free</Label>
-              <p className="text-xs text-muted-foreground">
-                Free notes can be downloaded instantly by any signed-in classmate.
-              </p>
+          <div className="rounded-lg border border-border bg-secondary/40 px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <Label htmlFor="free" className="flex items-center gap-2">
+                  Give these away free
+                  {isVerifiedSharer ? (
+                    <Badge variant="secondary" className="gap-1">
+                      <BadgeCheck className="h-3 w-3" aria-hidden="true" />
+                      Verified sharer
+                    </Badge>
+                  ) : (
+                    <Lock className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+                  )}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {isVerifiedSharer
+                    ? "Free notes can be downloaded instantly by any signed-in classmate."
+                    : "Free samples need an admin to verify your account first. Cash listings are open to everyone."}
+                </p>
+              </div>
+              <Switch
+                id="free"
+                checked={isFree}
+                disabled={!isVerifiedSharer}
+                onCheckedChange={setIsFree}
+              />
             </div>
-            <Switch id="free" checked={isFree} onCheckedChange={setIsFree} />
           </div>
+
 
           <div className="grid gap-4 sm:grid-cols-2">
             {!isFree && (
