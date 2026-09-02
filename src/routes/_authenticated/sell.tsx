@@ -251,8 +251,7 @@ function SellPage() {
             <Input
               id="file"
               type="file"
-              accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.zip"
-              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
             />
             <p className="text-xs text-muted-foreground">
               Paid files stay private — hand them over when you meet. Free files are downloadable
