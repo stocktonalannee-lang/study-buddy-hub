@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import { BadgeCheck, Crown, ShieldCheck } from "lucide-react";
@@ -9,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
+import { checkAnyAdmin, claimFirstAdmin } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -44,22 +46,17 @@ function AdminPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
 
+  const fetchAnyAdmin = useServerFn(checkAnyAdmin);
+  const doClaimAdmin = useServerFn(claimFirstAdmin);
+
   const anyAdmin = useQuery({
     queryKey: ["any-admin"],
     enabled: !isAdmin,
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("has_any_admin" as any);
-      if (error) throw new Error(error.message);
-      return data as boolean;
-    },
+    queryFn: fetchAnyAdmin,
   });
 
   const claimAdmin = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.rpc("bootstrap_first_admin" as any);
-      if (error) throw new Error(error.message);
-      return data as boolean;
-    },
+    mutationFn: doClaimAdmin,
     onSuccess: (becameAdmin) => {
       if (becameAdmin) {
         toast.success("You're now the first admin.");
