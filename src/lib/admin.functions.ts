@@ -62,6 +62,62 @@ export const recordSale = createServerFn({ method: "POST" })
     return true;
   });
 
+export const createSaleRemovalRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ saleId: z.string().uuid(), reason: z.string().min(5).max(1000) }).parse(input))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as any;
+    const { data: sale, error: saleError } = await db.from("sales").select("id, seller_id, status").eq("id", data.saleId).maybeSingle();
+    if (saleError) throw new Error(saleError.message);
+    if (!sale || sale.seller_id !== context.userId) throw new Error("Sale not found.");
+    if (sale.status !== "active") throw new Error("This sale is already under review or removed.");
+    const { data: existing } = await db.from("sale_removal_requests").select("id").eq("sale_id", data.saleId).in("status", ["pending"]).maybeSingle();
+    if (existing) throw new Error("A request for this sale is already pending.");
+    const { error } = await db.from("sale_removal_requests").insert({ sale_id: data.saleId, requester_id: context.userId, reason: data.reason.trim() });
+    if (error) throw new Error(error.message);
+    return true;
+  });
+
+export const getSupportSales = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as any;
+    const { data, error } = await db.from("sales").select("id, listing_id, amount_cents, sold_at, status").eq("seller_id", context.userId).eq("status", "active").order("sold_at", { ascending: false }).limit(100);
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const getSaleRemovalRequests = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const supabaseAdmin = await requireAdminUser(context.userId);
+    const db = supabaseAdmin as any;
+    const { data, error } = await db.from("sale_removal_requests").select("id, sale_id, requester_id, reason, status, created_at").order("created_at", { ascending: false }).limit(500);
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const reviewSaleRemovalRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ requestId: z.string().uuid(), approve: z.boolean() }).parse(input))
+  .handler(async ({ context, data }) => {
+    const supabaseAdmin = await requireAdminUser(context.userId);
+    const db = supabaseAdmin as any;
+    const status = data.approve ? "approved" : "rejected";
+    const { data: request, error: requestError } = await db.from("sale_removal_requests").select("id, sale_id, status").eq("id", data.requestId).maybeSingle();
+    if (requestError) throw new Error(requestError.message);
+    if (!request || request.status !== "pending") throw new Error("Request is no longer pending.");
+    const { error: requestUpdateError } = await db.from("sale_removal_requests").update({ status, reviewed_by: context.userId, reviewed_at: new Date().toISOString() }).eq("id", data.requestId);
+    if (requestUpdateError) throw new Error(requestUpdateError.message);
+    if (data.approve) {
+      const { error: saleError } = await db.from("sales").update({ status: "voided", voided_at: new Date().toISOString(), voided_by: context.userId }).eq("id", request.sale_id).eq("status", "active");
+      if (saleError) throw new Error(saleError.message);
+    }
+    return true;
+  });
+
 export const getAdminDashboard = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
   const supabaseAdmin = await requireAdminUser(context.userId);
   const db = supabaseAdmin as any;
@@ -86,6 +142,7 @@ export const getAdminDashboard = createServerFn({ method: "GET" }).middleware([r
     const e = earnings.get(sale.seller_id) ?? { previousMonth: 0, currentMonth: 0, allTime: 0, salesCount: 0 };
     const amount = Number(sale.amount_cents) || 0;
     const soldAt = new Date(sale.sold_at);
+    if (sale.status !== "active") continue;
     e.allTime += amount;
     e.salesCount += 1;
     if (soldAt >= currentStart) e.currentMonth += amount;
