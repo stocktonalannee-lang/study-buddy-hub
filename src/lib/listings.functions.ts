@@ -11,7 +11,6 @@ export type PublicListing = {
   price_cents: number;
   is_free: boolean;
   page_count: number | null;
-  is_sold: boolean;
   has_file: boolean;
   created_at: string;
   seller_id: string;
@@ -21,7 +20,7 @@ export type PublicListing = {
 };
 
 const listingRowSelect =
-  "id, title, subject, course_code, description, price_cents, is_free, page_count, is_sold, file_path, created_at, seller_id, profiles!listings_seller_profile_fkey (display_name, school, is_top_student)";
+  "id, title, subject, course_code, description, price_cents, is_free, page_count, file_path, created_at, seller_id, profiles!listings_seller_profile_fkey (display_name, school, is_top_student)";
 
 type RawRow = {
   id: string;
@@ -32,7 +31,6 @@ type RawRow = {
   price_cents: number;
   is_free: boolean;
   page_count: number | null;
-  is_sold: boolean;
   file_path: string | null;
   created_at: string;
   seller_id: string;
@@ -49,7 +47,6 @@ function toPublic(row: RawRow): PublicListing {
     price_cents: row.price_cents,
     is_free: row.is_free,
     page_count: row.page_count,
-    is_sold: row.is_sold,
     has_file: Boolean(row.file_path),
     created_at: row.created_at,
     seller_id: row.seller_id,
