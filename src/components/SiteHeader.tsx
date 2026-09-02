@@ -1,11 +1,13 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { BookOpenText, MessageSquare, PlusCircle, LogOut } from "lucide-react";
+import { BookOpenText, MessageSquare, PlusCircle, LogOut, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useRoles } from "@/hooks/useRoles";
 import { supabase } from "@/integrations/supabase/client";
 
 export function SiteHeader() {
   const { user, loading } = useAuth();
+  const { isAdmin } = useRoles();
   const navigate = useNavigate();
 
   return (
