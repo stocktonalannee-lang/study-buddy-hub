@@ -37,22 +37,44 @@ export const checkSuspended = createServerFn({ method: "GET" }).middleware([requ
   return { suspended, reason: null };
 });
 
+export const recordSale = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ listingId: z.string().uuid() }).parse(input))
+  .handler(async ({ context, data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const db = supabaseAdmin as any;
+    const { data: listing, error: listingError } = await db
+      .from("listings")
+      .select("id, seller_id, price_cents, is_free")
+      .eq("id", data.listingId)
+      .maybeSingle();
+    if (listingError) throw new Error(listingError.message);
+    if (!listing) throw new Error("Listing not found.");
+    if (listing.seller_id !== context.userId) throw new Error("You can only record sales for your own listings.");
+    if (listing.is_free) throw new Error("Free listings do not have sales.");
+    const { error } = await db.from("sales").insert({
+      listing_id: listing.id,
+      seller_id: listing.seller_id,
+      amount_cents: listing.price_cents,
+      sold_at: new Date().toISOString(),
+    });
+    if (error) throw new Error(error.message);
+    return true;
+  });
+
 export const getAdminDashboard = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
   const supabaseAdmin = await requireAdminUser(context.userId);
   const db = supabaseAdmin as any;
 
-  const [{ data: profiles, error: profilesError }, { data: salesListings, error: listingsError }, { data: users, error: usersError }, { data: roles, error: rolesError }] =
+  const [{ data: profiles, error: profilesError }, { data: sales, error: salesError }, { data: users, error: usersError }] =
     await Promise.all([
       db.from("profiles").select("id, display_name, school, is_top_student, created_at").order("created_at", { ascending: false }).limit(1000),
-      db.from("listings").select("id, seller_id, price_cents, is_free, is_sold, updated_at").eq("is_sold", true).eq("is_free", false),
+      db.from("sales").select("seller_id, amount_cents, sold_at"),
       supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
-      db.from("user_roles").select("user_id, role"),
     ]);
-
   if (profilesError) throw new Error(profilesError.message);
-  if (listingsError) throw new Error(listingsError.message);
+  if (salesError) throw new Error(salesError.message);
   if (usersError) throw new Error(usersError.message);
-  if (rolesError) throw new Error(rolesError.message);
 
   const currentStart = new Date();
   currentStart.setDate(1); currentStart.setHours(0, 0, 0, 0);
@@ -60,15 +82,15 @@ export const getAdminDashboard = createServerFn({ method: "GET" }).middleware([r
   previousStart.setMonth(previousStart.getMonth() - 1);
 
   const earnings = new Map<string, { previousMonth: number; currentMonth: number; allTime: number; salesCount: number }>();
-  for (const listing of salesListings ?? []) {
-    const e = earnings.get(listing.seller_id) ?? { previousMonth: 0, currentMonth: 0, allTime: 0, salesCount: 0 };
-    const amount = Number(listing.price_cents) || 0;
-    const soldAt = new Date(listing.updated_at);
+  for (const sale of sales ?? []) {
+    const e = earnings.get(sale.seller_id) ?? { previousMonth: 0, currentMonth: 0, allTime: 0, salesCount: 0 };
+    const amount = Number(sale.amount_cents) || 0;
+    const soldAt = new Date(sale.sold_at);
     e.allTime += amount;
     e.salesCount += 1;
     if (soldAt >= currentStart) e.currentMonth += amount;
     else if (soldAt >= previousStart) e.previousMonth += amount;
-    earnings.set(listing.seller_id, e);
+    earnings.set(sale.seller_id, e);
   }
 
   const suspendedIds = new Set(
