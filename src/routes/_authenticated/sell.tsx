@@ -292,13 +292,18 @@ function SellPage() {
                     {listing.subject} · {formatPrice(listing.price_cents, listing.is_free)}
                   </p>
                 </div>
-                {listing.is_sold && <Badge variant="outline">Sold</Badge>}
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => toggleSold.mutate({ id: listing.id, sold: !listing.is_sold })}
+                  disabled={recordSaleMutation.isPending || listing.is_free}
+                  onClick={() => {
+                    if (window.confirm("Record one sale for this listing?")) {
+                      recordSaleMutation.mutate(listing.id);
+                    }
+                  }}
                 >
-                  {listing.is_sold ? "Mark available" : "Mark sold"}
+                  <PlusCircle className="mr-1 h-4 w-4" aria-hidden="true" />
+                  Record sale
                 </Button>
                 <Button
                   size="icon"
