@@ -33,12 +33,13 @@ export const Route = createFileRoute("/_authenticated/admin")({
 });
 
 type Row = {
-  id: string;
-  display_name: string;
-  school: string | null;
-  is_top_student: boolean;
-  created_at: string;
+  id: string; display_name: string; school: string | null; is_top_student: boolean;
+  suspended_at: string | null; suspension_reason: string | null; created_at: string;
+  earnings: { previousMonth: number; currentMonth: number; allTime: number; salesCount: number };
 };
+function money(cents: number) {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+}
 
 function AdminPage() {
   const { user } = useAuth();
@@ -127,6 +128,23 @@ function AdminPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const suspension = useMutation({
+    mutationFn: async ({ userId, suspended }: { userId: string; suspended: boolean }) => {
+      if (suspended) {
+        if (!window.confirm("Suspend this account? They will be unable to sign in or use the marketplace.")) return false;
+        const reason = window.prompt("Optional suspension reason:") ?? "";
+        return doSuspend({ data: { userId, reason } });
+      }
+      return doUnsuspend({ data: { userId } });
+    },
+    onSuccess: (changed) => {
+      if (!changed) return;
+      toast.success("Account status updated");
+      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   if (rolesLoading || (!isAdmin && anyAdmin.isLoading)) {
     return <p className="mx-auto max-w-3xl px-4 py-10 text-sm text-muted-foreground">Loading…</p>;
   }
@@ -183,8 +201,8 @@ function AdminPage() {
   );
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10">
-      <h1 className="text-3xl font-semibold">Verify free-sample sharers</h1>
+    <div className="mx-auto max-w-6xl px-4 py-10">
+      <h1 className="text-3xl font-semibold">Admin dashboard</h1>
       <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
         Anyone can list notes for a cash meetup. Posting <strong>free downloads</strong> requires
         your verification, so nobody can dump junk or someone else's work as a free sample.
@@ -199,53 +217,36 @@ function AdminPage() {
       />
 
       {students.isLoading ? (
-        <p className="mt-6 text-sm text-muted-foreground">Loading students…</p>
+        <p className="mt-6 text-sm text-muted-foreground">Loading dashboard…</p>
       ) : rows.length === 0 ? (
         <p className="paper-card mt-6 p-6 text-sm text-muted-foreground">No students found yet.</p>
       ) : (
-        <ul className="mt-6 space-y-3">
-          {rows.map((row) => {
-            const verified = verifiedIds.has(row.id) || adminIds.has(row.id);
-            return (
-              <li key={row.id} className="paper-card flex flex-wrap items-center gap-3 p-4">
-                <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-2 font-medium">
-                    {row.display_name}
-                    {verified && (
-                      <Badge variant="secondary" className="gap-1">
-                        <BadgeCheck className="h-3 w-3" aria-hidden="true" />
-                        Verified sharer
-                      </Badge>
-                    )}
-                    {adminIds.has(row.id) && <Badge variant="outline">Admin</Badge>}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{row.school ?? "No school set"}</p>
-                </div>
-
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() =>
-                    setTopStudent.mutate({ userId: row.id, top: !row.is_top_student })
-                  }
-                >
-                  {row.is_top_student ? "Remove top student" : "Mark top student"}
-                </Button>
-
-                <Button
-                  size="sm"
-                  variant={verified ? "ghost" : "default"}
-                  disabled={adminIds.has(row.id) || setVerified.isPending}
-                  onClick={() =>
-                    setVerified.mutate({ userId: row.id, verified: !verifiedIds.has(row.id) })
-                  }
-                >
-                  {verifiedIds.has(row.id) ? "Unverify" : "Verify for free samples"}
-                </Button>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="mt-6 overflow-x-auto rounded-xl border">
+          <table className="w-full min-w-[1050px] text-sm">
+            <thead className="bg-secondary/40 text-left"><tr>
+              <th className="px-4 py-3">Student</th><th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3 text-right">Previous month</th><th className="px-4 py-3 text-right">Current month</th>
+              <th className="px-4 py-3 text-right">All time</th><th className="px-4 py-3 text-right">Sales</th><th className="px-4 py-3 text-right">Actions</th>
+            </tr></thead>
+            <tbody>{rows.map((row) => {
+              const verified = verifiedIds.has(row.id) || adminIds.has(row.id);
+              const suspended = Boolean(row.suspended_at);
+              return <tr key={row.id} className="border-t">
+                <td className="px-4 py-4"><div className="font-medium">{row.display_name}</div><div className="text-xs text-muted-foreground">{row.school ?? "No school set"}</div></td>
+                <td className="px-4 py-4">{adminIds.has(row.id) ? <Badge variant="outline">Protected admin</Badge> : suspended ? <Badge variant="destructive">Suspended</Badge> : <Badge variant="secondary">Active</Badge>}</td>
+                <td className="px-4 py-4 text-right">{money(row.earnings.previousMonth)}</td>
+                <td className="px-4 py-4 text-right">{money(row.earnings.currentMonth)}</td>
+                <td className="px-4 py-4 text-right font-semibold">{money(row.earnings.allTime)}</td>
+                <td className="px-4 py-4 text-right">{row.earnings.salesCount}</td>
+                <td className="px-4 py-4"><div className="flex justify-end gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setTopStudent.mutate({userId: row.id, top: !row.is_top_student})} disabled={adminIds.has(row.id)}>{row.is_top_student ? "Remove top student" : "Mark top student"}</Button>
+                  <Button size="sm" variant={verified ? "ghost" : "default"} disabled={adminIds.has(row.id) || setVerified.isPending} onClick={() => setVerified.mutate({userId: row.id, verified: !verifiedIds.has(row.id)})}>{verifiedIds.has(row.id) ? "Unverify" : "Verify"}</Button>
+                  {!adminIds.has(row.id) && <Button size="sm" variant={suspended ? "default" : "destructive"} disabled={suspension.isPending} onClick={() => suspension.mutate({userId: row.id, suspended: !suspended})}><UserRoundX className="mr-1 h-4 w-4" />{suspended ? "Unsuspend" : "Suspend"}</Button>}
+                </div></td>
+              </tr>;
+            })}</tbody>
+          </table>
+        </div>
       )}
     </div>
   );
