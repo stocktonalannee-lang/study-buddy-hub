@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { ChatPanel, type ThreadDetails } from "@/components/ChatPanel";
 
 type ThreadWithContext = ThreadDetails & {
-  listings: { title: string; is_sold: boolean } | null;
+  listings: { title: string } | null;
   buyer: { display_name: string } | null;
   seller: { display_name: string } | null;
 };
@@ -36,7 +36,7 @@ function ThreadPage() {
       const { data, error } = await supabase
         .from("threads")
         .select(
-          "id, listing_id, buyer_id, seller_id, meetup_at, meetup_place, listings:listing_id (title, is_sold), buyer:profiles!threads_buyer_profile_fkey (display_name), seller:profiles!threads_seller_profile_fkey (display_name)",
+          "id, listing_id, buyer_id, seller_id, meetup_at, meetup_place, listings:listing_id (title), buyer:profiles!threads_buyer_profile_fkey (display_name), seller:profiles!threads_seller_profile_fkey (display_name)",
         )
         .eq("id", threadId)
         .maybeSingle();
