@@ -2,7 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-async function requireAdminUser(userId: string) {
+// Centralized commission configuration. Change this one value in the future.
+export const COMMISSION_RATE = 0.10;
+\nasync function requireAdminUser(userId: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const db = supabaseAdmin as any;
   const { data, error } = await db.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
@@ -55,7 +57,7 @@ export const recordSale = createServerFn({ method: "POST" })
     const { error } = await db.from("sales").insert({
       listing_id: listing.id,
       seller_id: listing.seller_id,
-      amount_cents: listing.price_cents,
+      amount_cents: listing.price_cents,\n      commission_rate: COMMISSION_RATE,\n      commission_cents: Math.round(listing.price_cents * COMMISSION_RATE),
       sold_at: new Date().toISOString(),
     });
     if (error) throw new Error(error.message);
