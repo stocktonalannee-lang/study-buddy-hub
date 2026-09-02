@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
-import { checkAnyAdmin, claimFirstAdmin, getAdminDashboard, suspendUser, unsuspendUser } from "@/lib/admin.functions";
+import { checkAnyAdmin, claimFirstAdmin, getAdminDashboard, getSaleRemovalRequests, reviewSaleRemovalRequest, suspendUser, unsuspendUser } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -52,6 +52,8 @@ function AdminPage() {
   const fetchDashboard = useServerFn(getAdminDashboard);
   const doSuspend = useServerFn(suspendUser);
   const doUnsuspend = useServerFn(unsuspendUser);
+  const fetchSaleRemovalRequests = useServerFn(getSaleRemovalRequests);
+  const reviewSaleRequest = useServerFn(reviewSaleRemovalRequest);
 
   const anyAdmin = useQuery({
     queryKey: ["any-admin"],
@@ -77,6 +79,23 @@ function AdminPage() {
     queryKey: ["admin-dashboard"],
     enabled: isAdmin,
     queryFn: () => fetchDashboard(),
+  });
+
+  const saleRemovalRequests = useQuery({
+    queryKey: ["sale-removal-requests"],
+    enabled: isAdmin,
+    queryFn: () => fetchSaleRemovalRequests(),
+  });
+
+  const reviewSale = useMutation({
+    mutationFn: ({ requestId, approve }: { requestId: string; approve: boolean }) =>
+      reviewSaleRequest({ data: { requestId, approve } }),
+    onSuccess: () => {
+      toast.success("Sale-removal request reviewed");
+      queryClient.invalidateQueries({ queryKey: ["sale-removal-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   const grantedRoles = useQuery({
@@ -248,6 +267,27 @@ function AdminPage() {
           </table>
         </div>
       )}
+
+      <section className="mt-10">
+        <h2 className="text-2xl font-semibold">Sale-removal requests</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Review requests from sellers. Approved requests void the sale rather than deleting its audit trail.</p>
+        <div className="mt-4 space-y-3">
+          {(saleRemovalRequests.data ?? []).filter((request: any) => request.status === "pending").map((request: any) => (
+            <div key={request.id} className="paper-card p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div><p className="font-medium">Sale {request.sale_id.slice(0, 8)}…</p><p className="text-xs text-muted-foreground">Requested {new Date(request.created_at).toLocaleString()}</p></div>
+                <Badge>Pending</Badge>
+              </div>
+              <p className="mt-3 text-sm">{request.reason}</p>
+              <div className="mt-4 flex gap-2">
+                <Button size="sm" onClick={() => reviewSale.mutate({ requestId: request.id, approve: true })} disabled={reviewSale.isPending}>Approve removal</Button>
+                <Button size="sm" variant="outline" onClick={() => reviewSale.mutate({ requestId: request.id, approve: false })} disabled={reviewSale.isPending}>Reject</Button>
+              </div>
+            </div>
+          ))}
+          {saleRemovalRequests.data?.filter((request: any) => request.status === "pending").length === 0 && <p className="text-sm text-muted-foreground">No pending sale-removal requests.</p>}
+        </div>
+      </section>
     </div>
   );
 }
