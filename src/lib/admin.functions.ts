@@ -123,6 +123,98 @@ export const reviewSaleRemovalRequest = createServerFn({ method: "POST" })
     return true;
   });
 
+export type AdminListing = {
+  id: string;
+  title: string;
+  subject: string;
+  course_code: string | null;
+  price_cents: number;
+  is_free: boolean;
+  is_hidden: boolean;
+  file_path: string | null;
+  page_count: number | null;
+  created_at: string;
+  archived_at: string | null;
+  seller_id: string;
+  seller_name: string;
+  seller_school: string | null;
+  sales_count: number;
+};
+
+export const getAdminListings = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const supabaseAdmin = await requireAdminUser(context.userId);
+    const db = supabaseAdmin as any;
+    const [{ data: listings, error: listingsError }, { data: sales, error: salesError }] = await Promise.all([
+      db.from("listings").select("id, title, subject, course_code, price_cents, is_free, is_hidden, file_path, page_count, created_at, archived_at, seller_id, profiles!listings_seller_profile_fkey(display_name, school)").order("created_at", { ascending: false }).limit(2000),
+      db.from("sales").select("listing_id, status"),
+    ]);
+    if (listingsError) throw new Error(listingsError.message);
+    if (salesError) throw new Error(salesError.message);
+    const salesCount = new Map<string, number>();
+    for (const sale of sales ?? []) {
+      if (sale.status === "active") salesCount.set(sale.listing_id, (salesCount.get(sale.listing_id) ?? 0) + 1);
+    }
+    return (listings ?? []).map((row: any) => ({
+      id: row.id,
+      title: row.title,
+      subject: row.subject,
+      course_code: row.course_code,
+      price_cents: row.price_cents,
+      is_free: row.is_free,
+      is_hidden: row.is_hidden,
+      file_path: row.file_path,
+      page_count: row.page_count,
+      created_at: row.created_at,
+      archived_at: row.archived_at,
+      seller_id: row.seller_id,
+      seller_name: row.profiles?.display_name ?? "Student",
+      seller_school: row.profiles?.school ?? null,
+      sales_count: salesCount.get(row.id) ?? 0,
+    })) as AdminListing[];
+  });
+
+/** Admin-only temporary access to a note file. No sale is created. */
+export const getAdminNoteDownloadUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ listingId: z.string().uuid() }).parse(input))
+  .handler(async ({ context, data }) => {
+    const supabaseAdmin = await requireAdminUser(context.userId);
+    const db = supabaseAdmin as any;
+    const { data: listing, error } = await db.from("listings").select("id, file_path").eq("id", data.listingId).maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!listing?.file_path) return { url: null as string | null, reason: "No file attached" };
+    const signed = await supabaseAdmin.storage.from("notes").createSignedUrl(listing.file_path, 60 * 10);
+    if (signed.error) throw new Error(signed.error.message);
+    return { url: signed.data.signedUrl, reason: null as string | null };
+  });
+
+export const archiveListing = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ listingId: z.string().uuid() }).parse(input))
+  .handler(async ({ context, data }) => {
+    const supabaseAdmin = await requireAdminUser(context.userId);
+    const db = supabaseAdmin as any;
+    const { error } = await db.from("listings").update({ is_hidden: true, archived_at: new Date().toISOString(), archived_by: context.userId }).eq("id", data.listingId);
+    if (error) throw new Error(error.message);
+    return true;
+  });
+
+export const relistListing = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ listingId: z.string().uuid(), priceCents: z.number().int().min(0).max(1000000) }).parse(input))
+  .handler(async ({ context, data }) => {
+    const supabaseAdmin = await requireAdminUser(context.userId);
+    const db = supabaseAdmin as any;
+    const { data: listing, error: lookupError } = await db.from("listings").select("id, is_free").eq("id", data.listingId).maybeSingle();
+    if (lookupError) throw new Error(lookupError.message);
+    if (!listing) throw new Error("Listing not found.");
+    const { error } = await db.from("listings").update({ is_hidden: false, archived_at: null, archived_by: null, is_sold: false, price_cents: listing.is_free ? 0 : data.priceCents, is_free: listing.is_free }).eq("id", data.listingId);
+    if (error) throw new Error(error.message);
+    return true;
+  });
+
 export const getAdminDashboard = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
   const supabaseAdmin = await requireAdminUser(context.userId);
   const db = supabaseAdmin as any;
@@ -130,7 +222,7 @@ export const getAdminDashboard = createServerFn({ method: "GET" }).middleware([r
   const [{ data: profiles, error: profilesError }, { data: sales, error: salesError }, { data: users, error: usersError }] =
     await Promise.all([
       db.from("profiles").select("id, display_name, school, is_top_student, created_at").order("created_at", { ascending: false }).limit(1000),
-      db.from("sales").select("seller_id, amount_cents, sold_at"),
+      db.from("sales").select("seller_id, amount_cents, sold_at, status"),
       supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
     ]);
   if (profilesError) throw new Error(profilesError.message);
