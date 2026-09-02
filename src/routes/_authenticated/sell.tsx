@@ -35,6 +35,7 @@ export const Route = createFileRoute("/_authenticated/sell")({
 
 function SellPage() {
   const { user } = useAuth();
+  const { isVerifiedSharer } = useRoles();
   const queryClient = useQueryClient();
 
   const [title, setTitle] = useState("");
