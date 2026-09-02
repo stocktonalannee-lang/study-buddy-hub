@@ -14,7 +14,196 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      listings: {
+        Row: {
+          course_code: string | null
+          created_at: string
+          description: string | null
+          file_path: string | null
+          id: string
+          is_free: boolean
+          is_hidden: boolean
+          is_sold: boolean
+          page_count: number | null
+          premium_only: boolean
+          price_cents: number
+          seller_id: string
+          subject: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          course_code?: string | null
+          created_at?: string
+          description?: string | null
+          file_path?: string | null
+          id?: string
+          is_free?: boolean
+          is_hidden?: boolean
+          is_sold?: boolean
+          page_count?: number | null
+          premium_only?: boolean
+          price_cents?: number
+          seller_id: string
+          subject: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          course_code?: string | null
+          created_at?: string
+          description?: string | null
+          file_path?: string | null
+          id?: string
+          is_free?: boolean
+          is_hidden?: boolean
+          is_sold?: boolean
+          page_count?: number | null
+          premium_only?: boolean
+          price_cents?: number
+          seller_id?: string
+          subject?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          sender_id: string
+          thread_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          sender_id: string
+          thread_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          bio: string | null
+          created_at: string
+          display_name: string
+          id: string
+          is_top_student: boolean
+          school: string | null
+          updated_at: string
+          year_level: string | null
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          display_name?: string
+          id: string
+          is_top_student?: boolean
+          school?: string | null
+          updated_at?: string
+          year_level?: string | null
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          is_top_student?: boolean
+          school?: string | null
+          updated_at?: string
+          year_level?: string | null
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          id: string
+          status: string
+          tier: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          status?: string
+          tier?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          status?: string
+          tier?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      threads: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          id: string
+          last_message_at: string
+          listing_id: string
+          meetup_at: string | null
+          meetup_place: string | null
+          seller_id: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          listing_id: string
+          meetup_at?: string | null
+          meetup_place?: string | null
+          seller_id: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          listing_id?: string
+          meetup_at?: string | null
+          meetup_place?: string | null
+          seller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "threads_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
