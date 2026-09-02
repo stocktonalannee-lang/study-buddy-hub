@@ -21,4 +21,4 @@ GRANT ALL ON public.sales TO service_role;
 DROP POLICY IF EXISTS "sales_admin_read" ON public.sales;
 CREATE POLICY "sales_admin_read" ON public.sales
 FOR SELECT TO authenticated
-USING (public.has_role(auth.uid(), 'admin'));
+USING (internal.has_role(auth.uid(), 'admin'));
