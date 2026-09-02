@@ -36,7 +36,7 @@ function ThreadPage() {
       const { data, error } = await supabase
         .from("threads")
         .select(
-          "id, listing_id, buyer_id, seller_id, meetup_at, meetup_place, listings:listing_id (title, is_sold), buyer:buyer_id (display_name), seller:seller_id (display_name)",
+          "id, listing_id, buyer_id, seller_id, meetup_at, meetup_place, listings:listing_id (title, is_sold), buyer:profiles!threads_buyer_profile_fkey (display_name), seller:profiles!threads_seller_profile_fkey (display_name)",
         )
         .eq("id", threadId)
         .maybeSingle();

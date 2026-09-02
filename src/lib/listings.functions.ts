@@ -21,7 +21,7 @@ export type PublicListing = {
 };
 
 const listingRowSelect =
-  "id, title, subject, course_code, description, price_cents, is_free, page_count, is_sold, file_path, created_at, seller_id, profiles:seller_id (display_name, school, is_top_student)";
+  "id, title, subject, course_code, description, price_cents, is_free, page_count, is_sold, file_path, created_at, seller_id, profiles!listings_seller_profile_fkey (display_name, school, is_top_student)";
 
 type RawRow = {
   id: string;
