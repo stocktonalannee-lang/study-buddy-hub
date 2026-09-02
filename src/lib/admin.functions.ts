@@ -222,7 +222,7 @@ export const getAdminDashboard = createServerFn({ method: "GET" }).middleware([r
   const [{ data: profiles, error: profilesError }, { data: sales, error: salesError }, { data: users, error: usersError }] =
     await Promise.all([
       db.from("profiles").select("id, display_name, school, is_top_student, created_at").order("created_at", { ascending: false }).limit(1000),
-      db.from("sales").select("seller_id, amount_cents, sold_at, status"),
+      db.from("sales").select("seller_id, amount_cents, commission_cents, sold_at, status"),
       supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
     ]);
   if (profilesError) throw new Error(profilesError.message);
@@ -238,12 +238,14 @@ export const getAdminDashboard = createServerFn({ method: "GET" }).middleware([r
   for (const sale of sales ?? []) {
     const e = earnings.get(sale.seller_id) ?? { previousMonth: 0, currentMonth: 0, allTime: 0, salesCount: 0 };
     const amount = Number(sale.amount_cents) || 0;
+    const commission = Number(sale.commission_cents) || 0;
+    const sellerEarnings = Math.max(0, amount - commission);
     const soldAt = new Date(sale.sold_at);
     if (sale.status !== "active") continue;
-    e.allTime += amount;
+    e.allTime += sellerEarnings;
     e.salesCount += 1;
-    if (soldAt >= currentStart) e.currentMonth += amount;
-    else if (soldAt >= previousStart) e.previousMonth += amount;
+    if (soldAt >= currentStart) e.currentMonth += sellerEarnings;
+    else if (soldAt >= previousStart) e.previousMonth += sellerEarnings;
     earnings.set(sale.seller_id, e);
   }
 
