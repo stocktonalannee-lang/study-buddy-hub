@@ -43,7 +43,6 @@ export function ListingCard({ listing }: { listing: PublicListing }) {
           </span>
         )}
         {listing.page_count ? <span>{listing.page_count} pages</span> : null}
-        {listing.is_sold && <Badge variant="outline">Sold</Badge>}
       </div>
     </Link>
   );
