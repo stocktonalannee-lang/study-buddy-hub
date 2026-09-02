@@ -150,7 +150,6 @@ function ListingDetail() {
               Top student
             </Badge>
           )}
-          {listing.is_sold && <Badge variant="outline">Sold</Badge>}
           {listing.page_count ? (
             <span className="text-muted-foreground">{listing.page_count} pages</span>
           ) : null}
