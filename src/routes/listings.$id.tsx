@@ -184,8 +184,7 @@ function ListingDetail() {
 
         {!listing.is_free && (
           <p className="mt-4 text-xs text-muted-foreground">
-            Payment happens in person, in cash. NoteSwap never takes a cut. Meet somewhere public on
-            campus.
+            Payment happens in person, in cash. Meet somewhere public on campus.
           </p>
         )}
       </div>
