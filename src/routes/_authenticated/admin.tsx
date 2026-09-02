@@ -3,14 +3,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { BadgeCheck, Crown, ShieldCheck } from "lucide-react";
+import { BadgeCheck, Crown, DollarSign, ShieldCheck, UserRoundX } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
-import { checkAnyAdmin, claimFirstAdmin } from "@/lib/admin.functions";
+import { checkAnyAdmin, claimFirstAdmin, getAdminDashboard, suspendUser, unsuspendUser } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -48,6 +48,9 @@ function AdminPage() {
 
   const fetchAnyAdmin = useServerFn(checkAnyAdmin);
   const doClaimAdmin = useServerFn(claimFirstAdmin);
+  const fetchDashboard = useServerFn(getAdminDashboard);
+  const doSuspend = useServerFn(suspendUser);
+  const doUnsuspend = useServerFn(unsuspendUser);
 
   const anyAdmin = useQuery({
     queryKey: ["any-admin"],
@@ -70,17 +73,9 @@ function AdminPage() {
   });
 
   const students = useQuery({
-    queryKey: ["admin-students"],
+    queryKey: ["admin-dashboard"],
     enabled: isAdmin,
-    queryFn: async (): Promise<Row[]> => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, display_name, school, is_top_student, created_at")
-        .order("created_at", { ascending: false })
-        .limit(200);
-      if (error) throw new Error(error.message);
-      return data ?? [];
-    },
+    queryFn: () => fetchDashboard(),
   });
 
   const grantedRoles = useQuery({
