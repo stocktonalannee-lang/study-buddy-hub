@@ -58,8 +58,7 @@ function Index() {
           </h1>
           <p className="mt-4 text-base text-muted-foreground">
             Post the notes you already wrote. Browse what everyone else has. Every listing has its
-            own chat so you can agree on a time and place to meet and hand over the cash — no card,
-            no fees, no subscription.
+            own chat so you can agree on a time and place to meet and hand over the cash.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Button asChild size="lg">
@@ -86,7 +85,7 @@ function Index() {
             {
               icon: HandCoins,
               title: "3. Meet and pay cash",
-              text: "Pin a time and spot in the chat, meet on campus, mark it sold. Zero fees.",
+              text: "Pin a time and spot in the chat, meet on campus, and mark the sale when it is complete.",
             },
           ].map((step) => (
             <div key={step.title} className="paper-card p-5">
