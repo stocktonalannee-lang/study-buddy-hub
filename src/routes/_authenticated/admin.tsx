@@ -1,14 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
-import { BadgeCheck, ShieldCheck } from "lucide-react";
+import { BadgeCheck, Crown, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
+import { checkAnyAdmin, claimFirstAdmin } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -43,6 +45,29 @@ function AdminPage() {
   const { isAdmin, isLoading: rolesLoading } = useRoles();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+
+  const fetchAnyAdmin = useServerFn(checkAnyAdmin);
+  const doClaimAdmin = useServerFn(claimFirstAdmin);
+
+  const anyAdmin = useQuery({
+    queryKey: ["any-admin"],
+    enabled: !isAdmin,
+    queryFn: () => fetchAnyAdmin(),
+  });
+
+  const claimAdmin = useMutation({
+    mutationFn: async () => doClaimAdmin(),
+    onSuccess: (becameAdmin) => {
+      if (becameAdmin) {
+        toast.success("You're now the first admin.");
+        queryClient.invalidateQueries({ queryKey: ["roles", user?.id] });
+        queryClient.invalidateQueries({ queryKey: ["any-admin"] });
+      } else {
+        toast.error("An admin already exists. Ask them to verify your account.");
+      }
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
 
   const students = useQuery({
     queryKey: ["admin-students"],
@@ -107,11 +132,32 @@ function AdminPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  if (rolesLoading) {
+  if (rolesLoading || (!isAdmin && anyAdmin.isLoading)) {
     return <p className="mx-auto max-w-3xl px-4 py-10 text-sm text-muted-foreground">Loading…</p>;
   }
 
   if (!isAdmin) {
+    if (anyAdmin.data === false) {
+      return (
+        <div className="mx-auto max-w-lg px-4 py-20 text-center">
+          <Crown className="mx-auto h-8 w-8 text-accent" aria-hidden="true" />
+          <h1 className="mt-3 text-2xl font-semibold">Claim admin access</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            No admin exists yet. As the first signed-in user, you can claim admin access so you're
+            able to verify sharers.
+          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <Button onClick={() => claimAdmin.mutate()} disabled={claimAdmin.isPending}>
+              {claimAdmin.isPending ? "Claiming…" : "Become admin"}
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/browse">Back to browsing</Link>
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="mx-auto max-w-lg px-4 py-20 text-center">
         <ShieldCheck className="mx-auto h-7 w-7 text-accent" aria-hidden="true" />
