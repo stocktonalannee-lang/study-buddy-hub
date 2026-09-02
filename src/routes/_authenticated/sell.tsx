@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Trash2 } from "lucide-react";
+import { BadgeCheck, Loader2, Lock, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useRoles } from "@/hooks/useRoles";
 import { formatPrice } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/sell")({
@@ -34,6 +35,7 @@ export const Route = createFileRoute("/_authenticated/sell")({
 
 function SellPage() {
   const { user } = useAuth();
+  const { isVerifiedSharer } = useRoles();
   const queryClient = useQueryClient();
 
   const [title, setTitle] = useState("");
@@ -62,6 +64,9 @@ function SellPage() {
   const createListing = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Not signed in");
+      if (isFree && !isVerifiedSharer) {
+        throw new Error("An admin needs to verify your account before you can post free samples.");
+      }
       let filePath: string | null = null;
 
       if (file) {
@@ -181,15 +186,35 @@ function SellPage() {
             />
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border border-border bg-secondary/40 px-4 py-3">
-            <div>
-              <Label htmlFor="free">Give these away free</Label>
-              <p className="text-xs text-muted-foreground">
-                Free notes can be downloaded instantly by any signed-in classmate.
-              </p>
+          <div className="rounded-lg border border-border bg-secondary/40 px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <Label htmlFor="free" className="flex items-center gap-2">
+                  Give these away free
+                  {isVerifiedSharer ? (
+                    <Badge variant="secondary" className="gap-1">
+                      <BadgeCheck className="h-3 w-3" aria-hidden="true" />
+                      Verified sharer
+                    </Badge>
+                  ) : (
+                    <Lock className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+                  )}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {isVerifiedSharer
+                    ? "Free notes can be downloaded instantly by any signed-in classmate."
+                    : "Free samples need an admin to verify your account first. Cash listings are open to everyone."}
+                </p>
+              </div>
+              <Switch
+                id="free"
+                checked={isFree}
+                disabled={!isVerifiedSharer}
+                onCheckedChange={setIsFree}
+              />
             </div>
-            <Switch id="free" checked={isFree} onCheckedChange={setIsFree} />
           </div>
+
 
           <div className="grid gap-4 sm:grid-cols-2">
             {!isFree && (

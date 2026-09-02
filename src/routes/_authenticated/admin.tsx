@@ -1,0 +1,211 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { toast } from "sonner";
+import { BadgeCheck, ShieldCheck } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useRoles } from "@/hooks/useRoles";
+
+export const Route = createFileRoute("/_authenticated/admin")({
+  head: () => ({
+    meta: [
+      { title: "Verify sharers — NoteSwap admin" },
+      {
+        name: "description",
+        content:
+          "Admin tools for NoteSwap: verify which students are allowed to post free note samples.",
+      },
+      { property: "og:title", content: "Verify sharers — NoteSwap admin" },
+      {
+        property: "og:description",
+        content: "Approve the students allowed to post free note samples.",
+      },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
+  component: AdminPage,
+});
+
+type Row = {
+  id: string;
+  display_name: string;
+  school: string | null;
+  is_top_student: boolean;
+  created_at: string;
+};
+
+function AdminPage() {
+  const { user } = useAuth();
+  const { isAdmin, isLoading: rolesLoading } = useRoles();
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+
+  const students = useQuery({
+    queryKey: ["admin-students"],
+    enabled: isAdmin,
+    queryFn: async (): Promise<Row[]> => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, display_name, school, is_top_student, created_at")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
+  });
+
+  const grantedRoles = useQuery({
+    queryKey: ["admin-roles"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("user_roles").select("user_id, role");
+      if (error) throw new Error(error.message);
+      return data ?? [];
+    },
+  });
+
+  const setVerified = useMutation({
+    mutationFn: async ({ userId, verified }: { userId: string; verified: boolean }) => {
+      if (verified) {
+        const { error } = await supabase
+          .from("user_roles")
+          .insert({ user_id: userId, role: "verified_sharer", granted_by: user?.id ?? null });
+        if (error) throw new Error(error.message);
+      } else {
+        const { error } = await supabase
+          .from("user_roles")
+          .delete()
+          .eq("user_id", userId)
+          .eq("role", "verified_sharer");
+        if (error) throw new Error(error.message);
+      }
+    },
+    onSuccess: (_data, variables) => {
+      toast.success(variables.verified ? "Student verified" : "Verification removed");
+      queryClient.invalidateQueries({ queryKey: ["admin-roles"] });
+      queryClient.invalidateQueries({ queryKey: ["roles"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const setTopStudent = useMutation({
+    mutationFn: async ({ userId, top }: { userId: string; top: boolean }) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ is_top_student: top })
+        .eq("id", userId);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-students"] });
+      queryClient.invalidateQueries({ queryKey: ["listings"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  if (rolesLoading) {
+    return <p className="mx-auto max-w-3xl px-4 py-10 text-sm text-muted-foreground">Loading…</p>;
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-20 text-center">
+        <ShieldCheck className="mx-auto h-7 w-7 text-accent" aria-hidden="true" />
+        <h1 className="mt-3 text-2xl font-semibold">Admins only</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          This page is for site admins who verify which students can post free samples.
+        </p>
+        <Button asChild className="mt-5">
+          <Link to="/browse">Back to browsing</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  const verifiedIds = new Set(
+    (grantedRoles.data ?? [])
+      .filter((row) => row.role === "verified_sharer")
+      .map((row) => row.user_id),
+  );
+  const adminIds = new Set(
+    (grantedRoles.data ?? []).filter((row) => row.role === "admin").map((row) => row.user_id),
+  );
+
+  const rows = (students.data ?? []).filter((row) =>
+    search
+      ? `${row.display_name} ${row.school ?? ""}`.toLowerCase().includes(search.toLowerCase())
+      : true,
+  );
+
+  return (
+    <div className="mx-auto max-w-4xl px-4 py-10">
+      <h1 className="text-3xl font-semibold">Verify free-sample sharers</h1>
+      <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+        Anyone can list notes for a cash meetup. Posting <strong>free downloads</strong> requires
+        your verification, so nobody can dump junk or someone else's work as a free sample.
+      </p>
+
+      <Input
+        className="mt-6 max-w-sm"
+        placeholder="Search by name or school…"
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+        aria-label="Search students"
+      />
+
+      {students.isLoading ? (
+        <p className="mt-6 text-sm text-muted-foreground">Loading students…</p>
+      ) : rows.length === 0 ? (
+        <p className="paper-card mt-6 p-6 text-sm text-muted-foreground">No students found yet.</p>
+      ) : (
+        <ul className="mt-6 space-y-3">
+          {rows.map((row) => {
+            const verified = verifiedIds.has(row.id) || adminIds.has(row.id);
+            return (
+              <li key={row.id} className="paper-card flex flex-wrap items-center gap-3 p-4">
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-2 font-medium">
+                    {row.display_name}
+                    {verified && (
+                      <Badge variant="secondary" className="gap-1">
+                        <BadgeCheck className="h-3 w-3" aria-hidden="true" />
+                        Verified sharer
+                      </Badge>
+                    )}
+                    {adminIds.has(row.id) && <Badge variant="outline">Admin</Badge>}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{row.school ?? "No school set"}</p>
+                </div>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    setTopStudent.mutate({ userId: row.id, top: !row.is_top_student })
+                  }
+                >
+                  {row.is_top_student ? "Remove top student" : "Mark top student"}
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant={verified ? "ghost" : "default"}
+                  disabled={adminIds.has(row.id) || setVerified.isPending}
+                  onClick={() =>
+                    setVerified.mutate({ userId: row.id, verified: !verifiedIds.has(row.id) })
+                  }
+                >
+                  {verifiedIds.has(row.id) ? "Unverify" : "Verify for free samples"}
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}

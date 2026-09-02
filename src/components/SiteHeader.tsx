@@ -1,11 +1,13 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { BookOpenText, MessageSquare, PlusCircle, LogOut } from "lucide-react";
+import { BookOpenText, MessageSquare, PlusCircle, LogOut, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useRoles } from "@/hooks/useRoles";
 import { supabase } from "@/integrations/supabase/client";
 
 export function SiteHeader() {
   const { user, loading } = useAuth();
+  const { isAdmin } = useRoles();
   const navigate = useNavigate();
 
   return (
@@ -28,12 +30,21 @@ export function SiteHeader() {
                   Chats
                 </Link>
               </Button>
+              {isAdmin && (
+                <Button asChild variant="ghost" size="sm">
+                  <Link to="/admin">
+                    <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                    Admin
+                  </Link>
+                </Button>
+              )}
               <Button asChild size="sm">
                 <Link to="/sell">
                   <PlusCircle className="h-4 w-4" aria-hidden="true" />
                   Post notes
                 </Link>
               </Button>
+
               <Button
                 variant="ghost"
                 size="sm"
