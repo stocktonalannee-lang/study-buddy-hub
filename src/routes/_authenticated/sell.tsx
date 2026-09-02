@@ -136,7 +136,7 @@ function SellPage() {
         <h1 className="text-3xl font-semibold">Post your notes</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Set a cash price or give them away free. Buyers message you in the listing chat to arrange
-          a meetup.
+          a meetup. Each completed sale is recorded separately, so the same listing can be sold multiple times.
         </p>
 
         <form
