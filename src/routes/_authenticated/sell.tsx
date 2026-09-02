@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { BadgeCheck, Loader2, Lock, Trash2 } from "lucide-react";
+import { BadgeCheck, Loader2, Lock, PlusCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoles } from "@/hooks/useRoles";
 import { formatPrice } from "@/lib/format";
+import { recordSale } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/sell")({
   head: () => ({
@@ -36,6 +37,7 @@ export const Route = createFileRoute("/_authenticated/sell")({
 function SellPage() {
   const { user } = useAuth();
   const { isVerifiedSharer } = useRoles();
+  const recordSaleFn = useServerFn(recordSale);
   const queryClient = useQueryClient();
 
   const [title, setTitle] = useState("");
@@ -53,7 +55,7 @@ function SellPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("listings")
-        .select("id, title, subject, price_cents, is_free, is_sold, created_at")
+        .select("id, title, subject, price_cents, is_free, created_at")
         .eq("seller_id", user!.id)
         .order("created_at", { ascending: false });
       if (error) throw new Error(error.message);
@@ -104,12 +106,13 @@ function SellPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const toggleSold = useMutation({
-    mutationFn: async ({ id, sold }: { id: string; sold: boolean }) => {
-      const { error } = await supabase.from("listings").update({ is_sold: sold }).eq("id", id);
-      if (error) throw new Error(error.message);
+  const recordSaleMutation = useMutation({
+    mutationFn: async (listingId: string) => recordSaleFn({ data: { listingId } }),
+    onSuccess: () => {
+      toast.success("Sale recorded");
+      queryClient.invalidateQueries({ queryKey: ["my-listings"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["my-listings"] }),
     onError: (error: Error) => toast.error(error.message),
   });
 
