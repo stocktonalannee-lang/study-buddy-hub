@@ -25,6 +25,9 @@ export function SiteHeader() {
           {user ? (
             <>
               <Button asChild variant="ghost" size="sm">
+                <Link to="/support">Support</Link>
+              </Button>
+              <Button asChild variant="ghost" size="sm">
                 <Link to="/messages">
                   <MessageSquare className="h-4 w-4" aria-hidden="true" />
                   Chats
