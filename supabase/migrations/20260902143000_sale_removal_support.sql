@@ -29,16 +29,16 @@ FOR INSERT TO authenticated WITH CHECK (requester_id = auth.uid());
 
 DROP POLICY IF EXISTS "sale_removal_requests_read_own_or_admin" ON public.sale_removal_requests;
 CREATE POLICY "sale_removal_requests_read_own_or_admin" ON public.sale_removal_requests
-FOR SELECT TO authenticated USING (requester_id = auth.uid() OR public.has_role(auth.uid(), 'admin'));
+FOR SELECT TO authenticated USING (requester_id = auth.uid() OR internal.has_role(auth.uid(), 'admin'));
 
 DROP POLICY IF EXISTS "sale_removal_requests_admin_update" ON public.sale_removal_requests;
 CREATE POLICY "sale_removal_requests_admin_update" ON public.sale_removal_requests
-FOR UPDATE TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
+FOR UPDATE TO authenticated USING (internal.has_role(auth.uid(), 'admin')) WITH CHECK (internal.has_role(auth.uid(), 'admin'));
 
 DROP POLICY IF EXISTS "sales_admin_read" ON public.sales;
 CREATE POLICY "sales_admin_read" ON public.sales
 FOR SELECT TO authenticated
-USING (public.has_role(auth.uid(), 'admin') OR seller_id = auth.uid());
+USING (internal.has_role(auth.uid(), 'admin') OR seller_id = auth.uid());
 
 DROP POLICY IF EXISTS "sales_seller_no_write" ON public.sales;
 CREATE POLICY "sales_seller_no_write" ON public.sales
@@ -46,4 +46,4 @@ FOR INSERT TO authenticated WITH CHECK (seller_id = auth.uid());
 
 DROP POLICY IF EXISTS "sales_service_update" ON public.sales;
 CREATE POLICY "sales_service_update" ON public.sales
-FOR UPDATE TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
+FOR UPDATE TO authenticated USING (internal.has_role(auth.uid(), 'admin')) WITH CHECK (internal.has_role(auth.uid(), 'admin'));
