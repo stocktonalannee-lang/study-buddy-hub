@@ -4,6 +4,8 @@ CREATE TABLE IF NOT EXISTS public.sales (
   listing_id UUID NOT NULL REFERENCES public.listings(id) ON DELETE RESTRICT,
   seller_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT,
   amount_cents INTEGER NOT NULL CHECK (amount_cents >= 0),
+  commission_rate NUMERIC(5,4) NOT NULL DEFAULT 0.1000 CHECK (commission_rate >= 0 AND commission_rate <= 1),
+  commission_cents INTEGER NOT NULL DEFAULT 0 CHECK (commission_cents >= 0),
   sold_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
