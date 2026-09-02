@@ -52,11 +52,11 @@ function AdminPage() {
   const anyAdmin = useQuery({
     queryKey: ["any-admin"],
     enabled: !isAdmin,
-    queryFn: fetchAnyAdmin,
+    queryFn: () => fetchAnyAdmin(),
   });
 
   const claimAdmin = useMutation({
-    mutationFn: doClaimAdmin,
+    mutationFn: async () => doClaimAdmin(),
     onSuccess: (becameAdmin) => {
       if (becameAdmin) {
         toast.success("You're now the first admin.");
