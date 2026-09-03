@@ -12,6 +12,7 @@ const latestListings = queryOptions({
 });
 
 export const Route = createFileRoute("/")({
+  staticData: { sitemap: true },
   head: () => ({
     meta: [
       { title: "NoteSwap — Swap class notes, meet up, pay cash" },

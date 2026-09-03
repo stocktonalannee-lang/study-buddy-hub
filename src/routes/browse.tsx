@@ -13,6 +13,7 @@ const allListings = queryOptions({
 });
 
 export const Route = createFileRoute("/browse")({
+  staticData: { sitemap: true },
   head: () => ({
     meta: [
       { title: "Browse class notes by subject — NoteSwap" },

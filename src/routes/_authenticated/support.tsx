@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { getSupportSales, createSaleRemovalRequest } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/support")({
+  staticData: { sitemap: false },
   head: () => ({ meta: [{ title: "Support — NoteSwap" }, { name: "robots", content: "noindex" }] }),
   component: SupportPage,
 });

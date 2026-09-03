@@ -11,6 +11,7 @@ type ThreadWithContext = ThreadDetails & {
 };
 
 export const Route = createFileRoute("/_authenticated/messages/$threadId")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { title: "Chat about these notes — NoteSwap" },

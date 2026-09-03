@@ -17,6 +17,7 @@ const listingQuery = (id: string) =>
   });
 
 export const Route = createFileRoute("/listings/$id")({
+  staticData: { sitemap: true },
   loader: async ({ context, params }) => {
     const listing = await context.queryClient.ensureQueryData(listingQuery(params.id));
     if (!listing) throw notFound();
