@@ -16,6 +16,8 @@ export type Database = {
     Tables: {
       listings: {
         Row: {
+          archived_at: string | null
+          archived_by: string | null
           course_code: string | null
           created_at: string
           description: string | null
@@ -33,6 +35,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
           course_code?: string | null
           created_at?: string
           description?: string | null
@@ -50,6 +54,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived_at?: string | null
+          archived_by?: string | null
           course_code?: string | null
           created_at?: string
           description?: string | null
@@ -147,6 +153,103 @@ export type Database = {
           year_level?: string | null
         }
         Relationships: []
+      }
+      sale_removal_requests: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string
+          requester_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sale_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason: string
+          requester_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sale_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string
+          requester_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sale_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_removal_requests_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales: {
+        Row: {
+          amount_cents: number
+          commission_cents: number
+          commission_rate: number
+          created_at: string
+          id: string
+          listing_id: string
+          seller_id: string
+          sold_at: string
+          status: string
+          updated_at: string
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          amount_cents?: number
+          commission_cents?: number
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          listing_id: string
+          seller_id: string
+          sold_at?: string
+          status?: string
+          updated_at?: string
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          commission_cents?: number
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          listing_id?: string
+          seller_id?: string
+          sold_at?: string
+          status?: string
+          updated_at?: string
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subscriptions: {
         Row: {
