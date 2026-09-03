@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BrowseRouteImport } from './routes/browse'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedSellRouteImport } from './routes/_authenticated/sell'
+import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
 import { Route as ListingsIdRouteImport } from './routes/listings.$id'
 import { Route as AuthenticatedMessagesIndexRouteImport } from './routes/_authenticated/messages.index'
 import { Route as AuthenticatedMessagesThreadIdRouteImport } from './routes/_authenticated/messages.$threadId'
@@ -48,6 +49,11 @@ const AuthenticatedSellRoute = AuthenticatedSellRouteImport.update({
   path: '/sell',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSupportRoute = AuthenticatedSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const ListingsIdRoute = ListingsIdRouteImport.update({
   id: '/listings/$id',
   path: '/listings/$id',
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/browse': typeof BrowseRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/sell': typeof AuthenticatedSellRoute
+  '/support': typeof AuthenticatedSupportRoute
   '/listings/$id': typeof ListingsIdRoute
   '/messages/$threadId': typeof AuthenticatedMessagesThreadIdRoute
   '/messages/': typeof AuthenticatedMessagesIndexRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/browse': typeof BrowseRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/sell': typeof AuthenticatedSellRoute
+  '/support': typeof AuthenticatedSupportRoute
   '/listings/$id': typeof ListingsIdRoute
   '/messages/$threadId': typeof AuthenticatedMessagesThreadIdRoute
   '/messages': typeof AuthenticatedMessagesIndexRoute
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/browse': typeof BrowseRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/sell': typeof AuthenticatedSellRoute
+  '/_authenticated/support': typeof AuthenticatedSupportRoute
   '/listings/$id': typeof ListingsIdRoute
   '/_authenticated/messages/$threadId': typeof AuthenticatedMessagesThreadIdRoute
   '/_authenticated/messages/': typeof AuthenticatedMessagesIndexRoute
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
     | '/browse'
     | '/admin'
     | '/sell'
+    | '/support'
     | '/listings/$id'
     | '/messages/$threadId'
     | '/messages/'
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
     | '/browse'
     | '/admin'
     | '/sell'
+    | '/support'
     | '/listings/$id'
     | '/messages/$threadId'
     | '/messages'
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '/browse'
     | '/_authenticated/admin'
     | '/_authenticated/sell'
+    | '/_authenticated/support'
     | '/listings/$id'
     | '/_authenticated/messages/$threadId'
     | '/_authenticated/messages/'
@@ -184,6 +196,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSellRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/support': {
+      id: '/_authenticated/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof AuthenticatedSupportRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/listings/$id': {
       id: '/listings/$id'
       path: '/listings/$id'
@@ -211,6 +230,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedSellRoute: typeof AuthenticatedSellRoute
+  AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
   AuthenticatedMessagesThreadIdRoute: typeof AuthenticatedMessagesThreadIdRoute
   AuthenticatedMessagesIndexRoute: typeof AuthenticatedMessagesIndexRoute
 }
@@ -218,6 +238,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedSellRoute: AuthenticatedSellRoute,
+  AuthenticatedSupportRoute: AuthenticatedSupportRoute,
   AuthenticatedMessagesThreadIdRoute: AuthenticatedMessagesThreadIdRoute,
   AuthenticatedMessagesIndexRoute: AuthenticatedMessagesIndexRoute,
 }
