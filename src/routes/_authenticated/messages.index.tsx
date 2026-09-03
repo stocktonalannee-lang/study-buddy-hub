@@ -17,6 +17,7 @@ type ThreadRow = {
 };
 
 export const Route = createFileRoute("/_authenticated/messages/")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { title: "Your chats — NoteSwap" },

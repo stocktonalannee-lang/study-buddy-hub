@@ -17,6 +17,7 @@ import { formatPrice } from "@/lib/format";
 import { recordSale } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/sell")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { title: "Post your class notes — NoteSwap" },

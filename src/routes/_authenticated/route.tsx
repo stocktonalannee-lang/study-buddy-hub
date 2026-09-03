@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { checkSuspended } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated")({
+  staticData: { sitemap: "exclude-subtree" },
   ssr: false,
   beforeLoad: async () => {
     const { data, error } = await supabase.auth.getUser();

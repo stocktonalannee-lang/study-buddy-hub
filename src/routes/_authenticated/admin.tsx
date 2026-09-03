@@ -14,6 +14,7 @@ import { checkAnyAdmin, claimFirstAdmin, getAdminDashboard, getSaleRemovalReques
 import { AdminNotesPanel } from "@/components/AdminNotesPanel";
 
 export const Route = createFileRoute("/_authenticated/admin")({
+  staticData: { sitemap: false },
   head: () => ({
     meta: [
       { title: "Verify sharers — NoteSwap admin" },
